@@ -2,11 +2,6 @@ import numpy as np
 
 
 class Graph (object):
-    '''
-    A flow graph object
-
-    Calculates max flow using different methods
-    '''
 
     def __init__(self, data=None):
         n, m = np.shape(data)
@@ -25,32 +20,10 @@ class Graph (object):
         self.level = [-1] * self.size
         self.seen = [0] * self.size
 
-
-        assert sum(self.capacity[-1]) == 0 and sum(self.capacity[:, 0]) \
-        == 0 , "source must be first, sink must be last"
-
         self.source = 0
         self.sink = self.size - 1
 
     def _search(self, traverse, origin=None, goal=None, DFS=False):
-        '''
-        objective : find an augmented path between given origin and goal.
-        uses DFS or BFS
-
-        parameters :
-            self - object
-            traverse - a 1D array, holds the traverse of the path,
-                traverse[successor] = current
-            origin - int, an index for the origin, the default is the source
-            goal - int, an index for the goal, the default is sink
-            DFS - bool, True will search depth-first and False will
-                search breadth-first.
-            the default is BFS
-
-        output
-            True or False; indicator whether a path exists
-
-        '''
 
         # set path origin and goal indexes
         goal = goal or self.sink
@@ -97,25 +70,6 @@ class Graph (object):
 
     def _max_flow_search_FF(self, origin=None, goal=None, data=False,\
      DFS=False):
-        '''
-        objective : finds the max flow for a given graph
-
-        parameters :
-            self - object
-            origin - int, an index for the origin, the default is the source
-            goal - int, an index for the goal, the default is sink
-            data - bool, returns extended information if marked True
-            DFS - bool, True will search depth-first and False will search 
-            breadth-first. the default is BFS
-
-        output
-            default - float of max flow
-            with data - {max_flow: float of max flow, iteration: 
-             a dictionary with all traverses taken}
-    
-        complexity 
-            O(VE^2)
-        '''
 
         goal = goal or self.sink
         origin = origin or self.source
@@ -141,12 +95,7 @@ class Graph (object):
             while current != origin :
 
                 presented_data[iter_count].append(current)
-
-                # the predecessor for the current index 
                 pred = traverse[current]
-
-                # calculate the residual, the path flow is the smaller 
-                # between the edge residual and the existinf flow
                 residual_flow = (self.capacity[(pred, current)] - \
                     self.flow[(pred, current)])
                 path_flow = min(path_flow, residual_flow)
@@ -156,8 +105,6 @@ class Graph (object):
             # add the current path flow to the total flow
             max_flow += path_flow
 
-            # walk backwards, update the flow on the edges based on 
-            # the path flow
             current = goal
             while current != origin :
 
@@ -176,49 +123,11 @@ class Graph (object):
         return max_flow
 
     def EdmondKarp(self, origin=None, goal=None, data=False):
-        '''
-        objective : an external func, uses _max_flow_search with BFS 
-            Finds the shortest augmenting path from s to t, using BFS.
-            For each path, it finds the bounding capacity and sends as 
-            much flow. This process is repeating until there are no more 
-            augmented path in the residual graph
 
-        parameters :
-            self - object
-            origin - int, an index for the origin, the default is the source
-            goal - int, an index for the goal, the default is sink
-            data - bool, returns extended information if marked True
-            
-        output
-            default - float of max flow
-            with data - {max_flow: float of max flow, iteration: a dictionary 
-                with all traverses taken}
-        
-        complexity 
-            O(VE^2)
-            This algorithm uses a BFS to fins in each iteration the shortest 
-            augmented path between the source and the sink. Each path contains 
-            at least one edge. A single BFS runs O(E) and a push along the 
-            path is in its worst case O(E). Since the length of th paths 
-            never decreases (as promised by the use of BFS) and the length 
-            of a path can never exceed V, each edge can be found V times.
-            The total complexity, therefore, O(VE^2)
-            
-        '''
         return self._max_flow_search_FF(origin=origin, goal=goal, \
             data=data, DFS=False)
 
     def _BFS_using_levels(self, origin=None, goal=None):
-        '''
-        objective : bfs using the vertex level
-
-        parameters : 
-            origin: int, the default is the source
-            goal: int, the default is the sink
-        
-        output: bool: True if the goals level is higher than 0 
-
-        '''
 
         # set path origin and goal indexes
 
@@ -245,17 +154,6 @@ class Graph (object):
         return self.level
 
     def _send_flow(self, origin=None, goal=None, max_flow=float('inf')):
-        '''
-        objective : find the max flow based on DFS
-
-        parameters : 
-            origin: int, the default is the source
-            goal: int, the default is the sink
-            max_flow: int, default is the inf
-        
-        output : 0 if no path, flow if path found
-
-        '''
         
         goal = goal or self.sink
         origin = origin or self.source
@@ -289,17 +187,7 @@ class Graph (object):
         return 0
 
     def _max_flow_search_D(self, origin=None, goal=None):
-        '''
-        objective : iteration on the augmented paths 
 
-        parameters : 
-            origin: int, the default is the source
-            goal: int, the default is the sink
-
-        
-        output: the graph's max flow
-
-        '''
         # initialzing vars
         goal = goal or self.sink
         origin = origin or self.source
@@ -326,61 +214,14 @@ class Graph (object):
                 total_flow += path_flow
 
     def Dinic(self, origin=None, goal=None):
-        '''
-        objective: creates the next path using BFS, marks vertexes 
-            based on their distance from s. choosing only edges (u,v) 
-            such d(u)<d(v), resulting in a graph with fewer edges, 
-            and creates a graph where all path have the same length, 
-            found by a single DFS. 
-            Repeating only on the part of the graph that reaches t 
-            (using the found blocking flow)
-
-
-        ** performance exceeds EK for dense graphs.
-
-        parameters : 
-            origin: int, the default is the source
-            goal: int, the default is the sink
-            max_flow: int, default is the inf
-        
-        output: max flow
-
-        complexity:
-            O(EV^2)
-            Each iteration finds a longer set of paths than the previous one. 
-            Each DFS running on these paths (removing the unreachable vertexes) 
-            takes O(E). The maximum length of these paths is V, 
-            going through all vertexes. Hence, finding a viable 
-            path takes O(VE). This process can be repeated bounded by 
-            the number of vertexes, hence O(V). Reaching total complexity 
-            of O(EV^2)
-
-
-
-
-        '''
 
         return self._max_flow_search_D(origin=origin, goal=goal)
 
     def _push(self, u, v):
-        '''
-        objective: pushes the excess to a viable next vertex
-
-        parameters :
-            self - object
-            v - int, index of an overflowing vertex
-            u - int, index of a potential neighbor to move excess to 
-            
-        output
-            none
-
-        '''
-        # caculates the viable transferable flow, residual or the full excess
+        
         delta_flow = min(self.excess[u], (self.capacity[(u, v)] - \
             self.flow[(u, v)]))
 
-        # modify the flow and excess in both vertexes, and edges, 
-        # based on the delta in flow
         self.flow[(u, v)] += delta_flow
         self.flow[(v, u)] -= delta_flow
 
@@ -388,41 +229,16 @@ class Graph (object):
         self.excess[v] += delta_flow
 
     def _relabel(self, u):
-        '''
-        objective : modifies a vertex distnce to enable push 
-            (to create d(u) < d(v))
-
-        parameters :
-            self - object
-            u - int, index of the vertex to change the distance
-            
-        output
-            none
-
-        '''
+        
         # initialize 
         min_distance = float('inf')
 
-        # finds the min distance possible and changes the given 
-        # vertex distance by this number
         for v in range(self.size):
             if (self.capacity[(u, v)] - self.flow[(u, v)]) > 0 :
                 min_distance = min(min_distance, self.distance[v])
                 self.distance[u] = min_distance + 1
 
     def _discharge(self, u):
-        '''
-        objective: iterating on an active vertex with an excess until resolved
-
-        parameters :
-            self - object
-            u - int, index of a vertex with an excess flow, 
-                keep pushing flow until it disactivates (= excess flow = 0)
-            
-        output
-            none
-
-        '''
 
         while self.excess[u] > 0 :
 
@@ -431,9 +247,6 @@ class Graph (object):
 
                 v = self.seen[u]
 
-                # verifies the conditions to push: positive residual on the edge 
-                # and lower distance on the vertex the flow will be pushed to
-                # pushes if viable or moves to the next vertex
                 if (self.capacity[(u, v)] - self.flow[(u, v)] > 0) \
                 and (self.distance[u] > self.distance[v]):
             
@@ -448,36 +261,7 @@ class Graph (object):
                 self.seen[u] = 0
 
     def PushRelable(self, origin=None, goal=None):
-
-        '''
-        objective: unlike the previous two, this algorithm optimizes 
-        based on local decisions. Front to back, this algorithm iterates 
-        on the list of vertexes in the graph repeatedly selecting an 
-        overflowing vertex and discharge it: using push and relabel until 
-        the vertex deactivates.
-
-        ** performance exceeds Dinic for dense graphs.
-
-
-        parameters :
-            self - object
-            origin - int, an index for the origin, the default is the source
-            goal - int, an index for the goal, the default is sink
-            
-        output
-            graph max flow
-
-        complexity 
-            O(V^3)
-            Each vertex can be relabeled 2V times; discahrging pushes 
-            (uses the full residual capacity) And a discahrging pushes. 
-            There is a max of V discahrging pushes 
-            can be done on any edge. Hence max of 2V discahrging pushes. 
-            Pushes for an edge and its linked edge (numbered E) are O(VE). 
-            There are O(V^2) relabling operation called on V vertexes - O(V^3). 
-            Adding these O(V^3+VE) = O(V^3). 
-            (Since V<=E<=V^2 this conclusion is viable)
-        '''
+        
         # initiates vars
         n = self.size
 
