@@ -57,7 +57,7 @@ import numpy as np
 
 ## Authors
 
-* **Gili Karni** 
+* **Manda** 
 
 
 ## License
